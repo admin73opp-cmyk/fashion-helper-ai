@@ -39,7 +39,7 @@ class SuggestionResponse(BaseModel):
 class ImageRequest(BaseModel):
     prompt: str
     size: str = "1024x1024"
-    model: str = "dall-e-3"
+    model: str = "dall-e-2"
 
 
 class ImageResponse(BaseModel):
