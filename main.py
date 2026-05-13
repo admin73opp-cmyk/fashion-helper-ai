@@ -141,7 +141,6 @@ async def generate_image(req: ImageRequest):
             "prompt": req.prompt,
             "size": req.size,
             "n": 1,
-            "response_format": "url",
         }
 
         async with httpx.AsyncClient(timeout=60) as client:
