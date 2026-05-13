@@ -52,6 +52,31 @@ async def health():
     return {"status": "ok", "has_key": bool(OPENAI_API_KEY)}
 
 
+@app.get("/debug/models")
+async def debug_models():
+    """List available image models from OpenAI."""
+    if not OPENAI_API_KEY:
+        return {"error": "No API key configured"}
+
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get("https://api.openai.com/v1/models", headers=headers)
+
+    if resp.status_code != 200:
+        return {"error": f"Failed to fetch models: {resp.status_code}", "detail": resp.text[:200]}
+
+    data = resp.json()
+    image_models = [m["id"] for m in data.get("data", []) if "dall" in m["id"].lower() or "image" in m["id"].lower()]
+    all_models = [m["id"] for m in data.get("data", [])]
+
+    return {
+        "image_models": image_models,
+        "total_models": len(all_models),
+        "sample": all_models[:10]
+    }
+
+
 @app.post("/suggest", response_model=SuggestionResponse)
 async def suggest(req: SuggestionRequest):
     if not OPENAI_API_KEY:
