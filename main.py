@@ -148,9 +148,20 @@ async def generate_image(req: ImageRequest):
 
         if resp.status_code == 200:
             data = resp.json()
-            image_url = data.get("data", [{}])[0].get("url", "")
+            # Handle different response formats
+            image_data = data.get("data", [{}])[0] if data.get("data") else {}
+
+            # Try URL format (DALL-E style)
+            image_url = image_data.get("url", "")
             if image_url:
                 return ImageResponse(image_url=image_url)
+
+            # Try base64 format (gpt-image style)
+            b64 = image_data.get("b64_json", "")
+            if b64:
+                return ImageResponse(image_base64=b64)
+
+            return ImageResponse()
 
         last_error = resp.text[:300]
 
