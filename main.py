@@ -39,7 +39,7 @@ class SuggestionResponse(BaseModel):
 class ImageRequest(BaseModel):
     prompt: str
     size: str = "1024x1024"
-    model: str = "dall-e-2"
+    model: str = "gpt-image-1"
 
 
 class ImageResponse(BaseModel):
@@ -128,10 +128,10 @@ async def generate_image(req: ImageRequest):
 
     # Try models in order: requested model first, then fallbacks
     models_to_try = [req.model]
-    if req.model != "dall-e-3":
-        models_to_try.append("dall-e-3")
-    if req.model != "dall-e-2":
-        models_to_try.append("dall-e-2")
+    fallbacks = ["gpt-image-1", "gpt-image-1-mini", "gpt-image-2"]
+    for fb in fallbacks:
+        if fb not in models_to_try:
+            models_to_try.append(fb)
 
     last_error = None
 
@@ -156,7 +156,7 @@ async def generate_image(req: ImageRequest):
         last_error = resp.text[:300]
 
     # All models failed
-    raise HTTPException(status_code=500, detail=f"Image generation not available. Ensure your OpenAI account has DALL-E access. Last error: {last_error}")
+    raise HTTPException(status_code=500, detail=f"Image generation not available. Ensure your OpenAI account has image generation access. Last error: {last_error}")
 
 
 if __name__ == "__main__":
