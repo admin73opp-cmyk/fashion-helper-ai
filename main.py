@@ -101,24 +101,37 @@ async def generate_image(req: ImageRequest):
         "Content-Type": "application/json",
     }
 
-    body = {
-        "model": req.model,
-        "prompt": req.prompt,
-        "size": req.size,
-        "n": 1,
-        "response_format": "url",
-    }
+    # Try models in order: requested model first, then fallbacks
+    models_to_try = [req.model]
+    if req.model != "dall-e-3":
+        models_to_try.append("dall-e-3")
+    if req.model != "dall-e-2":
+        models_to_try.append("dall-e-2")
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(OPENAI_IMAGES_URL, headers=headers, json=body)
+    last_error = None
 
-    if resp.status_code != 200:
-        detail = resp.text[:300]
-        raise HTTPException(status_code=resp.status_code, detail=detail)
+    for model in models_to_try:
+        body = {
+            "model": model,
+            "prompt": req.prompt,
+            "size": req.size,
+            "n": 1,
+            "response_format": "url",
+        }
 
-    data = resp.json()
-    image_url = data.get("data", [{}])[0].get("url", "")
-    return ImageResponse(image_url=image_url)
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(OPENAI_IMAGES_URL, headers=headers, json=body)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            image_url = data.get("data", [{}])[0].get("url", "")
+            if image_url:
+                return ImageResponse(image_url=image_url)
+
+        last_error = resp.text[:300]
+
+    # All models failed
+    raise HTTPException(status_code=500, detail=f"Image generation not available. Ensure your OpenAI account has DALL-E access. Last error: {last_error}")
 
 
 if __name__ == "__main__":
